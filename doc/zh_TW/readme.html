@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<title>QBraille XL WinUSB 點字顯示器驅動程式</title>
+</head>
+<body>
+<h1>QBraille XL WinUSB 點字顯示器驅動程式</h1>
+<p>本附加元件讓 NVDA 2026.1 以上版本透過 Microsoft WinUSB 連接 HIMS QBraille XL，以及使用相同通訊協定的 Braille EDGE 點字顯示器。</p>
+<h2>功能</h2>
+<ul>
+<li>自動偵測 USB VID 045E、PID 930B 的相容裝置。</li>
+<li>支援由 Zadig 安裝的 Microsoft WinUSB 驅動程式。</li>
+<li>支援點字輸出、游標定位鍵、點字鍵盤及裝置功能鍵。</li>
+<li>與 NVDA 2026.1 及 2026.2 相容。</li>
+</ul>
+<h2>安裝與使用</h2>
+<ol>
+<li>使用 Zadig 將 QBraille XL 的 USB 驅動程式設為 WinUSB。</li>
+<li>安裝本 NVDA 附加元件並完整重新啟動 NVDA。</li>
+<li>將 QBraille XL 切換至 USB 模式並連接電腦。</li>
+<li>NVDA 應會自動偵測顯示器。也可在「NVDA 設定」的「點字」類別中選擇「QBraille XL (WinUSB)」。</li>
+</ol>
+<h2>疑難排解</h2>
+<p>若未偵測到裝置，請確認 Windows 裝置管理員中的裝置使用 WinUSB，而且硬體識別碼包含 <code>VID_045E&amp;PID_930B</code>。更新附加元件後，請務必完整重新啟動 NVDA，以釋放舊版驅動程式持有的 USB handle。</p>
+<p>若問題仍然存在，請將 NVDA 日誌等級設為「偵錯」，重新連接裝置，並附上包含 <code>qbrailleXLWinUSB</code> 的完整日誌。</p>
+</body>
+</html>
