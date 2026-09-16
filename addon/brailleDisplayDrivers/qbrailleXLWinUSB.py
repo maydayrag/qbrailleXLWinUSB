@@ -2,7 +2,10 @@
 # This file is covered by the GNU General Public License.
 # See the file COPYING for more details.
 
-"""NVDA braille display driver for a QBraille XL using WinUSB.
+"""使用 WinUSB 的 QBraille XL NVDA 點字顯示器驅動程式。
+
+本檔案保留英文 API 名稱與協定術語，並在程式碼旁加入繁體中文說明，方便
+日後學習。註解只解釋既有流程，不改變驅動程式行為。
 
 The display speaks the HIMS bulk protocol, but NVDA's built-in HIMS driver
 opens legacy endpoint paths (``devicePath\\0`` and ``devicePath\\1``).  Zadig
@@ -27,6 +30,7 @@ addonHandler.initTranslation()
 
 
 USB_ID = "VID_045E&PID_930B"
+# 以下常數是 Windows SetupAPI、Kernel32 與 WinUSB API 使用的旗標/錯誤碼。
 _USB_REGISTRY_PATH = r"SYSTEM\CurrentControlSet\Enum\USB"
 _INVALID_HANDLE_VALUE = ctypes.c_void_p(-1).value
 _DIGCF_PRESENT = 0x2
@@ -46,6 +50,7 @@ _USBD_PIPE_TYPE_BULK = 2
 
 
 class _GUID(ctypes.Structure):
+	"""Windows GUID 的 ctypes 記憶體配置。"""
 	_fields_ = (
 		("Data1", wintypes.DWORD),
 		("Data2", wintypes.WORD),
@@ -55,6 +60,7 @@ class _GUID(ctypes.Structure):
 
 
 class _SP_DEVICE_INTERFACE_DATA(ctypes.Structure):
+	"""SetupAPI 回傳的裝置介面資料。"""
 	_fields_ = (
 		("cbSize", wintypes.DWORD),
 		("InterfaceClassGuid", _GUID),
@@ -64,6 +70,7 @@ class _SP_DEVICE_INTERFACE_DATA(ctypes.Structure):
 
 
 class _SP_DEVICE_INTERFACE_DETAIL_DATA_W(ctypes.Structure):
+	"""SetupAPI 用來取得實際裝置路徑的資料結構。"""
 	_fields_ = (
 		("cbSize", wintypes.DWORD),
 		("DevicePath", wintypes.WCHAR * 1024),
@@ -71,6 +78,7 @@ class _SP_DEVICE_INTERFACE_DETAIL_DATA_W(ctypes.Structure):
 
 
 class _USB_INTERFACE_DESCRIPTOR(ctypes.Structure):
+	"""WinUSB 介面描述元，包含端點數量。"""
 	_fields_ = (
 		("bLength", ctypes.c_ubyte),
 		("bDescriptorType", ctypes.c_ubyte),
@@ -85,6 +93,7 @@ class _USB_INTERFACE_DESCRIPTOR(ctypes.Structure):
 
 
 class _WINUSB_PIPE_INFORMATION(ctypes.Structure):
+	"""USB 端點（pipe）的類型、編號與封包大小。"""
 	_fields_ = (
 		("PipeType", ctypes.c_int),
 		("PipeId", ctypes.c_ubyte),
@@ -94,6 +103,7 @@ class _WINUSB_PIPE_INFORMATION(ctypes.Structure):
 
 
 class _OVERLAPPED(ctypes.Structure):
+	"""Windows 非同步 I/O 使用的 OVERLAPPED 結構。"""
 	_fields_ = (
 		("Internal", ctypes.c_size_t),
 		("InternalHigh", ctypes.c_size_t),
@@ -200,11 +210,13 @@ _winusb.WinUsb_GetOverlappedResult.restype = wintypes.BOOL
 
 
 def _winError(message: str) -> OSError:
+	# ctypes 讀取最後一個 Win32 錯誤，轉成帶有可讀訊息的例外。
 	return ctypes.WinError(ctypes.get_last_error(), message)
 
 
 def _findInterfaceGuids() -> list[str]:
-	"""Read the interface GUID written by Zadig for the QBraille USB ID."""
+	"""讀取 Zadig 為指定 QBraille USB ID 寫入的 WinUSB 介面 GUID。"""
+	# Zadig 會把 WinUSB 介面 GUID 寫入登錄檔；先找出 GUID 才能查詢裝置路徑。
 	guids: list[str] = []
 	try:
 		with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, _USB_REGISTRY_PATH) as usbKey:
@@ -239,6 +251,7 @@ def _findInterfaceGuids() -> list[str]:
 
 
 def _devicePathsForGuid(guidString: str):
+	# SetupAPI 依 GUID 列舉目前存在的介面，並篩選 QBraille 的 USB ID。
 	guid = _GUID()
 	if _ole32.CLSIDFromString(guidString, ctypes.byref(guid)) < 0:
 		return
@@ -278,7 +291,10 @@ def _devicePathsForGuid(guidString: str):
 
 
 class _WinUsbTransport:
+	"""封裝 WinUSB 控制代碼，提供執行緒安全的讀寫。"""
+
 	def __init__(self, path: str, onReceive):
+		# 以 OVERLAPPED 模式開啟介面，讀取工作交由背景執行緒處理。
 		self._onReceive = onReceive
 		self._stopping = threading.Event()
 		self._readEvent = threading.Event()
@@ -308,6 +324,7 @@ class _WinUsbTransport:
 		self._thread.start()
 
 	def _findBulkPipes(self):
+		# 顯示器使用一個 Bulk IN（裝置到電腦）和一個 Bulk OUT 端點。
 		descriptor = _USB_INTERFACE_DESCRIPTOR()
 		if not _winusb.WinUsb_QueryInterfaceSettings(self._usbHandle, 0, ctypes.byref(descriptor)):
 			raise _winError("WinUsb_QueryInterfaceSettings failed")
@@ -334,6 +351,7 @@ class _WinUsbTransport:
 		log.info(f"QBraille XL WinUSB pipes: IN=0x{self._pipeIn:02X}, OUT=0x{self._pipeOut:02X}")
 
 	def _readLoop(self):
+		# 持續等待裝置資料；停止時由 close() 中止 pipe，讓等待立即結束。
 		buffer = (ctypes.c_ubyte * self._readSize)()
 		eventHandle = _kernel32.CreateEventW(None, True, False, None)
 		if not eventHandle:
@@ -383,6 +401,7 @@ class _WinUsbTransport:
 			_kernel32.CloseHandle(eventHandle)
 
 	def write(self, data: bytes):
+		# 每次寫入建立自己的事件；鎖避免多個 NVDA 執行緒同時寫入。
 		buffer = (ctypes.c_ubyte * len(data)).from_buffer_copy(data)
 		transferred = wintypes.ULONG()
 		eventHandle = _kernel32.CreateEventW(None, True, False, None)
@@ -416,11 +435,13 @@ class _WinUsbTransport:
 			raise IOError(f"Short WinUSB write: {transferred.value} of {len(data)} bytes")
 
 	def waitForRead(self, timeout: float) -> bool:
+		# 初始化時用來等待背景讀取執行緒收到回應。
 		result = self._readEvent.wait(timeout)
 		self._readEvent.clear()
 		return result
 
 	def close(self):
+		# 中止讀取、等待執行緒結束，再釋放 WinUSB 與檔案控制代碼。
 		if self._stopping.is_set():
 			return
 		self._stopping.set()
@@ -431,6 +452,7 @@ class _WinUsbTransport:
 
 
 class BrailleDisplayDriver(hims.BrailleDisplayDriver):
+	"""以 HIMS 協定處理資料、以 WinUSB 傳輸的 QBraille XL 驅動程式。"""
 	name = "qbrailleXLWinUSB"
 	description = _("QBraille XL (WinUSB)")
 	isThreadSafe = True
@@ -439,11 +461,12 @@ class BrailleDisplayDriver(hims.BrailleDisplayDriver):
 
 	@classmethod
 	def check(cls) -> bool:
-		"""Expose the driver when the Zadig-created WinUSB interface is installed."""
+		"""只有找到 Zadig 建立的 WinUSB 介面時，才讓 NVDA 顯示本驅動程式。"""
 		return bool(_findInterfaceGuids())
 
 	@classmethod
 	def registerAutomaticDetection(cls, driverRegistrar: bdDetect.DriverRegistrar):
+		# 先註冊 USB ID，再把 WinUSB 掃描器移到最前，避免內建 HIMS 驅動搶先開啟。
 		driverRegistrar.addUsbDevices(bdDetect.ProtocolType.CUSTOM, {USB_ID})
 		# The built-in HIMS driver claims the same USB ID and uses legacy
 		# ``devicePath\\0`` / ``devicePath\\1`` endpoint handles. When WinUSB is
@@ -454,6 +477,7 @@ class BrailleDisplayDriver(hims.BrailleDisplayDriver):
 
 	@classmethod
 	def _scanWinUsbDevices(cls, usb=True, bluetooth=False, limitToDevices=None):
+		# 將每個找到的 WinUSB 路徑包裝成 NVDA 的 DeviceMatch。
 		if not usb or (limitToDevices and cls.name not in limitToDevices):
 			return
 		for guidString in _findInterfaceGuids():
@@ -470,10 +494,11 @@ class BrailleDisplayDriver(hims.BrailleDisplayDriver):
 
 	@classmethod
 	def getManualPorts(cls):
-		# Always expose an automatic port so the driver can be selected manually.
+		# 固定提供 automatic 連接埠，讓使用者仍可在設定中手動選取驅動程式。
 		return iter((braille.AUTOMATIC_PORT,))
 
 	def __init__(self, port="auto"):
+		# 不呼叫 HIMS 建構子：它只會嘗試傳統的 endpoint 路徑（\\0/\\1）。
 		# Do not call hims.BrailleDisplayDriver.__init__; it uses legacy bulk endpoint paths.
 		braille.BrailleDisplayDriver.__init__(self)
 		self.numCells = 0
@@ -497,6 +522,7 @@ class BrailleDisplayDriver(hims.BrailleDisplayDriver):
 					if not self.numCells:
 						raise RuntimeError("QBraille XL did not answer the cell-count request")
 					# PID 930B uses the Braille EDGE/QBraille-compatible HIMS protocol.
+					# USB 傳輸雖不同，但 PID 930B 的資料格式仍沿用 Braille EDGE/QBraille HIMS 協定。
 					self._model = hims.BrailleEdge()
 					log.info(f"Found QBraille XL through WinUSB with {self.numCells} cells")
 					return
