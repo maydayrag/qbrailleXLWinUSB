@@ -1,37 +1,28 @@
-# QBraille XL WinUSB NVDA 附加元件
+# QBraille XL WinUSB NVDA Add-on
 
-這個附加元件讓 NVDA 透過 Microsoft WinUSB 連接 HIMS QBraille XL，以及使用相同通訊協定的 Braille EDGE 點字顯示器。
+This add-on connects HIMS QBraille XL displays, and Braille EDGE displays
+using the same communication protocol, to NVDA through Microsoft WinUSB.
 
-## 功能
+## Features
 
-- 自動偵測 USB `VID_045E&PID_930B` 的相容點字顯示器。
-- 支援由 Zadig 安裝的 Microsoft WinUSB 驅動程式。
-- 支援點字輸出、游標定位鍵、點字鍵盤與裝置功能鍵。
-- 支援 NVDA 2026.1 及 2026.2。
-- 提供繁體中文與英文使用說明。
+- Automatically detects compatible displays with USB ID `VID_045E&PID_930B`.
+- Supports the Microsoft WinUSB driver installed by Zadig.
+- Supports braille output, routing keys, braille keyboard input, and display
+  function keys.
+- Supports NVDA 2026.1 and 2026.2.
+- Includes English and Traditional Chinese documentation.
 
-## 安裝
+## Installation
 
-1. 使用 Zadig 將 QBraille XL 的 USB 驅動程式設為 WinUSB。
-2. 從 [Releases](https://github.com/maydayrag/qbrailleXLWinUSB/releases) 下載最新的 `.nvda-addon`。
-3. 安裝附加元件並完整重新啟動 NVDA。
-4. 將 QBraille XL 切換至 USB 模式並連接電腦。
-5. NVDA 應會自動偵測裝置；也可在「NVDA 設定 → 點字」選擇「QBraille XL (WinUSB)」。
+1. Use Zadig to install the WinUSB driver for the QBraille XL.
+2. Download the latest `.nvda-addon` package from [Releases](https://github.com/maydayrag/qbrailleXLWinUSB/releases).
+3. Install the add-on and fully restart NVDA.
+4. Switch the QBraille XL to USB mode and connect it to the computer.
+5. NVDA should detect the display automatically. You can also select
+   **QBraille XL (WinUSB)** under **NVDA Settings → Braille**.
 
-## 系統需求
+## Requirements
 
-- NVDA 2026.1 或更新版本
-- Windows 11 AMD64（已在 NVDA 2026.2 實機驗證）
-- 以 Zadig 安裝的 WinUSB 裝置驅動程式
-
-## 維護紀錄
-
-開發、除錯與硬體驗證歷程請見 [ISSUE_LOG.md](ISSUE_LOG.md)。所有新問題與修正都必須同步記錄。
-
-## 建置
-
-```powershell
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\build.ps1
-```
-
-安裝檔會輸出至 `dist/`。
+- NVDA 2026.1 or later
+- Windows 11 AMD64 (verified with NVDA 2026.2)
+- The WinUSB device driver installed with Zadig
