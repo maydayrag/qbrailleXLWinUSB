@@ -1,4 +1,4 @@
-# Copyright (C) 2026 QBraille XL WinUSB contributors
+# Copyright (C) 2026 roundface
 # This file is covered by the GNU General Public License.
 # See the file COPYING for more details.
 
