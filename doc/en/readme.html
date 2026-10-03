@@ -1,24 +1,14 @@
-<!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<title>QBraille XL WinUSB braille display driver</title>
-</head>
-<body>
-<h1>QBraille XL WinUSB braille display driver</h1>
-<p>This add-on connects a HIMS QBraille XL, or a compatible Braille EDGE display, to NVDA 2026.1 or later through the Microsoft WinUSB driver installed by Zadig.</p>
-<h2>Features</h2>
-<ul>
-<li>Automatically detects compatible USB VID 045E and PID 930B devices.</li>
-<li>Supports braille output, routing keys, braille input and display function keys.</li>
-<li>Compatible with NVDA 2026.1 and 2026.2.</li>
-</ul>
-<h2>Installation</h2>
-<ol>
-<li>Use Zadig to install the WinUSB driver for the QBraille XL.</li>
-<li>Install this NVDA add-on and fully restart NVDA.</li>
-<li>Connect the display in USB mode.</li>
-<li>NVDA should detect it automatically. You can also select “QBraille XL (WinUSB)” under NVDA Settings, Braille.</li>
-</ol>
-</body>
-</html>
+﻿<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>QBraille XL USB and Bluetooth 1.5</title></head><body>
+<h1>QBraille XL USB and Bluetooth 1.5</h1>
+<p>Connect HIMS QBraille XL or compatible Braille EDGE displays to NVDA 2026.1 or later through USB WinUSB or Bluetooth serial (SPP). The add-on identifier remains qbrailleXLWinUSB for updates.</p>
+<h2>Features</h2><ul><li>Automatic WinUSB detection for VID_045E&amp;PID_930B.</li><li>Automatic Bluetooth SPP detection for Braille EDGE / BrailleEDGE devices, without manual COM port selection.</li><li>Braille output, routing, braille input and function keys using NVDA's HIMS protocol.</li></ul>
+<h2>Install and enable detection</h2><ol><li>Install the add-on and fully restart NVDA.</li><li>In NVDA Settings → Braille → Change display, select Automatic. If detection is restricted, include QBraille XL (WinUSB / Bluetooth).</li><li>Set up USB or Bluetooth below. NVDA's background detection enables the driver when the device is available and responds. You may also select QBraille XL (WinUSB / Bluetooth) with its Automatic port to try available connections.</li></ol>
+<h2>Bluetooth</h2><ol><li>Open Connectivity → Bluetooth Braille on QBraille XL to enter pairing mode. For an existing pairing, select this computer's Braille connection.</li><li>Pair Braille EDGE in Windows Bluetooth settings. If prompted for a PIN, the manufacturer specifies 0000.</li><li>Ensure Windows has created a Bluetooth serial SPP COM port and the display is powered on and available. NVDA opens the port automatically.</li></ol>
+<p>Braille EDGE is the braille SPP connection; QBrailleXL is the separate keyboard HID connection. Pairing only the keyboard does not provide braille output. Bluetooth needs no Zadig. Hybrid keyboard operation requires the separate keyboard pairing.</p>
+<h2>USB</h2><ol><li>Install Microsoft WinUSB for the QBraille XL USB device using Zadig.</li><li>Connect the display in USB mode.</li></ol>
+<h2>Troubleshooting</h2><ul><li>Enable Automatic detection and allow this driver.</li><li>For Bluetooth, verify the Braille EDGE SPP pairing and COM port, select the correct computer on the display, and close other screen readers holding the port. An offline paired display must respond before it can be used.</li><li>NVDA scans on device changes and retries known Bluetooth devices on application changes. Switch applications or reselect Automatic if needed. Detection runs in the background; other active displays follow NVDA's normal selection behavior.</li><li>For USB, verify WinUSB and VID_045E&amp;PID_930B in Device Manager.</li><li>Fully restart NVDA after updating. For unresolved failures, enable debug logging and provide the full log containing qbrailleXLWinUSB and connection errors.</li></ul>
+<h2>Changes in 1.5</h2><ul><li>Bluetooth SPP detection and serial transport.</li><li>Bluetooth-only availability before USB insertion.</li><li>Honor the exact device supplied by NVDA; release unsuccessful connections for retry.</li><li>Updated English and Traditional Chinese documentation.</li></ul>
+<p>Implementation checked against NVDA 2026.2 source. Automated tests cover detection, transport selection, timeouts, cleanup and package integrity. Bluetooth hardware verification is pending.</p>
+<p><a href="https://selvasblv.com/wp-content/resources/qbraille-xl/QBraille%20XL%20User%20Manual%20Rev%20181212.pdf">Manufacturer's manual, sections 4.1–4.3</a></p>
+</body></html>

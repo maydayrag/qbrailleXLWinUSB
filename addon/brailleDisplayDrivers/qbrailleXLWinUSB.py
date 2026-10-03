@@ -22,6 +22,7 @@ import winreg
 import addonHandler
 import bdDetect
 import braille
+from hwIo.base import Serial
 from brailleDisplayDrivers import hims
 from logHandler import log
 
@@ -452,22 +453,35 @@ class _WinUsbTransport:
 
 
 class BrailleDisplayDriver(hims.BrailleDisplayDriver):
-	"""以 HIMS 協定處理資料、以 WinUSB 傳輸的 QBraille XL 驅動程式。"""
+	"""以 HIMS 協定處理資料、透過 WinUSB 或藍牙傳輸。"""
 	name = "qbrailleXLWinUSB"
-	description = _("QBraille XL (WinUSB)")
+	description = _("QBraille XL (WinUSB / Bluetooth)")
 	isThreadSafe = True
 	supportsAutomaticDetection = True
 	timeout = 0.5
 
 	@classmethod
 	def check(cls) -> bool:
-		"""只有找到 Zadig 建立的 WinUSB 介面時，才讓 NVDA 顯示本驅動程式。"""
-		return bool(_findInterfaceGuids())
+		"""允許 NVDA 在裝置尚未連線時先啟用自動偵測。"""
+		# 即使尚未插入 USB，也要讓 NVDA 註冊藍牙偵測，才能找到稍後連線的裝置。
+		return True
+
+	@classmethod
+	def matchesBluetoothDevice(cls, match):
+		# 原廠手冊：點字 SPP 名稱是 Braille EDGE；QBrailleXL 是另一個鍵盤 HID 連線。
+		# 忽略空格與大小寫，以相容 Windows 及不同韌體的顯示名稱。
+		name = "".join(match.id.split()).casefold()
+		return (
+			match.type == bdDetect.ProtocolType.SERIAL
+			and "bluetoothName" in match.deviceInfo
+			and name.startswith("brailleedge")
+		)
 
 	@classmethod
 	def registerAutomaticDetection(cls, driverRegistrar: bdDetect.DriverRegistrar):
 		# 先註冊 USB ID，再把 WinUSB 掃描器移到最前，避免內建 HIMS 驅動搶先開啟。
 		driverRegistrar.addUsbDevices(bdDetect.ProtocolType.CUSTOM, {USB_ID})
+		driverRegistrar.addBluetoothDevices(cls.matchesBluetoothDevice)
 		# The built-in HIMS driver claims the same USB ID and uses legacy
 		# ``devicePath\\0`` / ``devicePath\\1`` endpoint handles. When WinUSB is
 		# installed, that attempt can leave a partial legacy handle open if its
@@ -478,9 +492,13 @@ class BrailleDisplayDriver(hims.BrailleDisplayDriver):
 	@classmethod
 	def _scanWinUsbDevices(cls, usb=True, bluetooth=False, limitToDevices=None):
 		# 將每個找到的 WinUSB 路徑包裝成 NVDA 的 DeviceMatch。
-		if not usb or (limitToDevices and cls.name not in limitToDevices):
+		if limitToDevices and cls.name not in limitToDevices:
 			return
-		for guidString in _findInterfaceGuids():
+		# 優先交給本驅動，避免通用 HIMS 驅動先佔用相同的藍牙序列埠。
+		if bluetooth:
+			for match in bdDetect.getPossibleBluetoothDevicesForDriver(cls.name):
+				yield cls.name, match
+		for guidString in _findInterfaceGuids() if usb else ():
 			for path in _devicePathsForGuid(guidString):
 				yield (
 					cls.name,
@@ -497,6 +515,20 @@ class BrailleDisplayDriver(hims.BrailleDisplayDriver):
 		# 固定提供 automatic 連接埠，讓使用者仍可在設定中手動選取驅動程式。
 		return iter((braille.AUTOMATIC_PORT,))
 
+	@classmethod
+	def connectionCandidates(cls, port):
+		# 自動偵測傳來的裝置必須直接使用，不能改連其他 USB 或藍牙裝置。
+		if isinstance(port, bdDetect.DeviceMatch):
+			yield port
+			return
+		if port not in ("auto", "usb", "bluetooth"):
+			raise ValueError("Select an automatic, USB or Bluetooth connection")
+		if port in ("auto", "usb"):
+			for _, match in cls._scanWinUsbDevices(usb=True):
+				yield match
+		if port in ("auto", "bluetooth"):
+			yield from bdDetect.getPossibleBluetoothDevicesForDriver(cls.name)
+
 	def __init__(self, port="auto"):
 		# 不呼叫 HIMS 建構子：它只會嘗試傳統的 endpoint 路徑（\\0/\\1）。
 		# Do not call hims.BrailleDisplayDriver.__init__; it uses legacy bulk endpoint paths.
@@ -504,35 +536,46 @@ class BrailleDisplayDriver(hims.BrailleDisplayDriver):
 		self.numCells = 0
 		self._model = None
 		self._serialData = b""
-		self.isBulk = True
 		self.isHID = False
 		lastError = None
-		interfaceGuids = _findInterfaceGuids()
-		log.info(f"QBraille XL WinUSB interface GUIDs: {interfaceGuids!r}")
-		for guidString in interfaceGuids:
-			for path in _devicePathsForGuid(guidString):
-				log.info(f"Trying QBraille XL WinUSB interface: {path}")
-				try:
-					self._dev = _WinUsbTransport(path, self._onReceive)
-					for _attempt in range(3):
-						self._sendCellCountRequest()
-						self._dev.waitForRead(self.timeout * 4)
-						if self.numCells:
-							break
-					if not self.numCells:
-						raise RuntimeError("QBraille XL did not answer the cell-count request")
-					# PID 930B uses the Braille EDGE/QBraille-compatible HIMS protocol.
-					# USB 傳輸雖不同，但 PID 930B 的資料格式仍沿用 Braille EDGE/QBraille HIMS 協定。
-					self._model = hims.BrailleEdge()
-					log.info(f"Found QBraille XL through WinUSB with {self.numCells} cells")
-					return
-				except Exception as error:
-					lastError = error
-					log.error("Could not initialize QBraille XL WinUSB interface", exc_info=True)
-					if hasattr(self, "_dev"):
-						self._dev.close()
+		for match in self.connectionCandidates(port):
+			self.numCells = 0
+			self._model = None
+			self._serialData = b""
+			self.isBulk = match.type == bdDetect.ProtocolType.CUSTOM
+			dev = None
+			try:
+				if self.isBulk and match.id == USB_ID:
+					self._dev = dev = _WinUsbTransport(match.port, self._onReceive)
+				elif self.matchesBluetoothDevice(match):
+					# 使用 NVDA 的 HIMS 序列埠參數與背景 I/O，接收流程沿用 HIMS。
+					self._dev = dev = Serial(
+						match.port,
+						baudrate=hims.BAUD_RATE,
+						parity=hims.PARITY,
+						timeout=self.timeout,
+						writeTimeout=self.timeout,
+						onReceive=self._onReceive,
+					)
+				else:
+					continue
+				for _attempt in range(3):
+					self._sendCellCountRequest()
+					dev.waitForRead(self.timeout * 4 if self.isBulk else self.timeout)
+					if self.numCells:
+						break
+				if not self.numCells:
+					raise RuntimeError("QBraille XL did not answer the cell-count request")
+				# 原廠手冊確認 USB 與藍牙 SPP 均使用 Braille EDGE 40 協定。
+				self._model = hims.BrailleEdge()
+				log.info(f"Found QBraille XL via {match.type} ({match.port}) with {self.numCells} cells")
+				return
+			except Exception as error:
+				lastError = error
+				log.debugWarning(f"Could not initialize QBraille XL on {match.port}", exc_info=True)
+				# 未連線或沒有回應時釋放埠，讓下一次自動偵測能重新嘗試。
+				if dev is not None:
+					dev.close()
 		if lastError:
-			raise RuntimeError("QBraille XL WinUSB connection failed") from lastError
-		raise RuntimeError(
-			"QBraille XL WinUSB interface was not found; connect the display and verify the Zadig driver"
-		)
+			raise RuntimeError("QBraille XL USB/Bluetooth connection failed") from lastError
+		raise RuntimeError("No QBraille XL found; connect USB WinUSB or pair the Braille EDGE Bluetooth SPP device")

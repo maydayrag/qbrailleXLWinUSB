@@ -15,6 +15,33 @@ device test confirms the result.
 - Verification:
 - Follow-up:
 
+## 2026-10-03 — Bluetooth SPP support in 1.5
+
+- Version: 1.5
+- Status: implemented, awaiting Bluetooth hardware verification
+- Previous behavior: availability depended on WinUSB registry entries and the
+  constructor scanned USB regardless of NVDA's detected device.
+- Evidence: manufacturer's QBraille XL manual sections 4.1–4.3 identify
+  `Braille EDGE` as the braille SPP device and `QBrailleXL` as keyboard HID;
+  both braille connections use the Braille EDGE 40 protocol. NVDA 2026.2
+  `brailleDisplayDrivers/hims.py` supplies serial settings, input/output and
+  termination; `hwIo/base.py` supplies background serial I/O; `bdDetect.py`
+  supplies Bluetooth matching, device-change scanning and app-switch retries.
+  Developer Guide plugin layout and Add-on Development Guide driver sections
+  were also reviewed.
+- Change: register serial-only Bluetooth matching; include Bluetooth in the
+  existing priority scanner; expose the driver without USB; honor exact
+  DeviceMatch; use NVDA Serial for SPP and WinUSB for USB; close failed
+  handshakes. Keep the existing add-on ID for upgrade compatibility.
+- Verification: nine isolated automated tests cover names/HID rejection,
+  registration, scan filters, exact-device handling, serial settings, USB,
+  timeout cleanup, retry, busy ports and USB-to-Bluetooth fallback. Final
+  package verification checks ZIP signature/CRC, version, driver location,
+  syntax and exact source/documentation bytes.
+- Follow-up: test real Bluetooth pairing, braille output/input/routing,
+  disconnect/reconnect and USB regression under NVDA 2026.2. Automated tests
+  use fake transports and do not prove radio or physical-device behavior.
+
 ## 2026-09-16 — Add-on installs but NVDA does not discover the driver
 
 - Version reported: 0.1.0
