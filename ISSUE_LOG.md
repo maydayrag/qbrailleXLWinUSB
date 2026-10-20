@@ -15,7 +15,7 @@ device test confirms the result.
 - Verification:
 - Follow-up:
 
-## 2026-10-21 — 2.0.1 startup detection delay
+## 2026-10-21 — 2.0 startup detection delay
 
 - Version reported: 2.0
 - Status: fixed in source; automated regression tests passed; live restart
@@ -35,7 +35,7 @@ device test confirms the result.
 - Verification: 19 tests, including fail-fast guards proving that neither
   Bluetooth nor registry discovery runs before a ready vendor USB match,
   Zadig/Bluetooth fallback and synchronous-response wait avoidance.
-- Follow-up: compare startup timestamps after installing 2.0.1. The current
+- Follow-up: compare startup timestamps after installing 2.0. The current
   running NVDA was not restarted or replaced during this change.
 
 ## 2026-10-21 — 2.0 bug-fix release
