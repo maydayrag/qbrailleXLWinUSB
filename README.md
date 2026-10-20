@@ -13,7 +13,6 @@ to NVDA through USB WinUSB or Bluetooth serial (SPP).
 ## Features
 
 - Automatically detects QBraille XL / Braille EDGE.
-- Automatic Bluetooth SPP detection for `Braille EDGE` / `BrailleEDGE` devices.
 - Compatible with NVDA 2026.1–2026.2.
 - English and Traditional Chinese documentation.
 
