@@ -1,4 +1,4 @@
-# QBraille XL / Braille EDGE 點字顯示器驅動程式附加元件
+# QBraille XL / Braille EDGE 點字顯示器驅動程式
 
 **相容 NVDA 2026.1～2026.2。NVDA 2026.3 已內建點字顯示器驅動程式，不需安裝本附加元件。**
 
@@ -25,10 +25,10 @@ remains `qbrailleXLWinUSB`, so it updates existing installations.
 1. Install the add-on and fully restart NVDA.
 2. In NVDA Settings → Braille → Change display, select **Automatic**.
    If automatic detection is restricted to specific displays, include
-   **QBraille XL / Braille EDGE 點字顯示器驅動程式附加元件**.
+   **QBraille XL / Braille EDGE 點字顯示器驅動程式**.
 3. Set up either connection below. NVDA's background detection opens the
    display once it is available and responds. No manual COM port selection
-   is required. You may also select **QBraille XL / Braille EDGE 點字顯示器驅動程式附加元件** with
+   is required. You may also select **QBraille XL / Braille EDGE 點字顯示器驅動程式** with
    its **Automatic** port to try currently available connections.
 
 ### Bluetooth

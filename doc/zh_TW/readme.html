@@ -1,12 +1,12 @@
 <!doctype html>
-<html lang="zh-Hant"><head><meta charset="utf-8"><title>QBraille XL / Braille EDGE 點字顯示器驅動程式附加元件 2.0</title></head>
+<html lang="zh-Hant"><head><meta charset="utf-8"><title>QBraille XL / Braille EDGE 點字顯示器驅動程式 2.0</title></head>
 <body>
-<h1>QBraille XL / Braille EDGE 點字顯示器驅動程式附加元件 2.0</h1>
+<h1>QBraille XL / Braille EDGE 點字顯示器驅動程式 2.0</h1>
 <p>讓 NVDA 2026.1 至 2026.2透過 USB WinUSB 或藍牙序列埠（SPP）連接 HIMS QBraille XL 或相容的 Braille EDGE 點字顯示器。附加元件識別名稱維持 qbrailleXLWinUSB，可直接更新舊版。</p>
 <p><strong>相容 NVDA 2026.1～2026.2。NVDA 2026.3 已內建點字顯示器驅動程式，不需安裝本附加元件。</strong></p><h2>功能</h2>
 <ul><li>自動偵測 USB VID 045E、PID 930A 與 930B 的 WinUSB 裝置。</li><li>自動偵測 Braille EDGE／BrailleEDGE 藍牙 SPP 裝置，不必手動選 COM 埠。</li><li>沿用 NVDA HIMS 協定，支援點字輸出、定位鍵、點字輸入與功能鍵。</li></ul>
 <h2>安裝與自動偵測</h2>
-<ol><li>安裝本附加元件並完整重新啟動 NVDA。</li><li>開啟「NVDA 設定 → 點字 → 變更顯示器」，選擇「自動」。若有設定自動偵測裝置範圍，請包含「QBraille XL / Braille EDGE 點字顯示器驅動程式附加元件」。</li><li>依下列方式完成 USB 或藍牙連線。NVDA 在背景偵測到裝置並收到回應後會啟用驅動。也可以手動選擇上述驅動，連接埠選「自動」，嘗試目前可用的連線。</li></ol>
+<ol><li>安裝本附加元件並完整重新啟動 NVDA。</li><li>開啟「NVDA 設定 → 點字 → 變更顯示器」，選擇「自動」。若有設定自動偵測裝置範圍，請包含「QBraille XL / Braille EDGE 點字顯示器驅動程式」。</li><li>依下列方式完成 USB 或藍牙連線。NVDA 在背景偵測到裝置並收到回應後會啟用驅動。也可以手動選擇上述驅動，連接埠選「自動」，嘗試目前可用的連線。</li></ol>
 <h2>藍牙連線</h2>
 <ol><li>在 QBraille XL 的 Connectivity（連線）選單選擇 Bluetooth Braille（藍牙點字）進入配對模式；已配對時，選擇這台電腦的點字連線。</li><li>在 Windows 藍牙設定配對「Braille EDGE」。若要求 PIN，原廠手冊指定為 0000。</li><li>確認 Windows 已建立藍牙序列埠（SPP／COM），並保持裝置開機、可連線。NVDA 會自動開啟對應埠。</li></ol>
 <p>原廠將「Braille EDGE」用於點字 SPP，「QBrailleXL」用於另一個鍵盤 HID 連線。只配對鍵盤無法提供點字輸出。藍牙不需要 Zadig；若要使用混合鍵盤模式，需另外配對鍵盤。</p>

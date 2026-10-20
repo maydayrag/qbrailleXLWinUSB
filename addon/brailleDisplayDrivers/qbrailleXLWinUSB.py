@@ -469,7 +469,7 @@ class _WinUsbTransport:
 class BrailleDisplayDriver(hims.BrailleDisplayDriver):
 	"""以 HIMS 協定處理資料、透過 WinUSB 或藍牙傳輸。"""
 	name = "qbrailleXLWinUSB"
-	description = _("QBraille XL / Braille EDGE 點字顯示器驅動程式附加元件")
+	description = _("QBraille XL / Braille EDGE 點字顯示器驅動程式")
 	isThreadSafe = True
 	supportsAutomaticDetection = True
 	timeout = 0.5
