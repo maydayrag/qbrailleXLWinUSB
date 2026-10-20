@@ -503,16 +503,22 @@ class BrailleDisplayDriver(hims.BrailleDisplayDriver):
 		driverRegistrar.addDeviceScanner(cls._scanWinUsbDevices, moveToStart=True)
 
 	@classmethod
+	def interfaceGuids(cls):
+		# 原廠介面已知，先嘗試即可；只有找不到時才讀取 Zadig 的登錄資料。
+		yield HIMS_WINUSB_GUID
+		for guid in _findInterfaceGuids():
+			if guid.casefold() != HIMS_WINUSB_GUID.casefold():
+				yield guid
+
+	@classmethod
 	def _scanWinUsbDevices(cls, usb=True, bluetooth=False, limitToDevices=None):
 		# 將每個找到的 WinUSB 路徑包裝成 NVDA 的 DeviceMatch。
 		if limitToDevices and cls.name not in limitToDevices:
 			return
-		# 優先交給本驅動，避免通用 HIMS 驅動先佔用相同的藍牙序列埠。
-		if bluetooth:
-			for match in bdDetect.getPossibleBluetoothDevicesForDriver(cls.name):
-				yield cls.name, match
+		# 先找實際接上的 USB；藍牙埠列舉可能很慢，不能擋住 USB 的啟動。
+		# 此函式逐一產生結果，NVDA 成功連線後便停止，不會繼續列舉藍牙。
 		seenPaths = set()
-		for guidString in _findInterfaceGuids() if usb else ():
+		for guidString in cls.interfaceGuids() if usb else ():
 			for path in _devicePathsForGuid(guidString):
 				# 原廠與登錄檔可能提供同一介面，不要重複開啟同一裝置。
 				if path.casefold() in seenPaths:
@@ -527,6 +533,9 @@ class BrailleDisplayDriver(hims.BrailleDisplayDriver):
 						{"usbID": USB_ID, "devicePath": path, "interfaceGuid": guidString},
 					),
 				)
+		if bluetooth:
+			for match in bdDetect.getPossibleBluetoothDevicesForDriver(cls.name):
+				yield cls.name, match
 
 	@classmethod
 	def getManualPorts(cls):
@@ -579,6 +588,7 @@ class BrailleDisplayDriver(hims.BrailleDisplayDriver):
 			self.isBulk = match.type == bdDetect.ProtocolType.CUSTOM
 			dev = None
 			try:
+				log.info(f"Opening QBraille XL via {match.type} ({match.port})")
 				if self.isBulk and match.id == USB_ID:
 					self._dev = dev = _WinUsbTransport(match.port, self._onReceive)
 				elif self.matchesBluetoothDevice(match):
@@ -595,6 +605,9 @@ class BrailleDisplayDriver(hims.BrailleDisplayDriver):
 					continue
 				for _attempt in range(3):
 					self._sendCellCountRequest()
+					# 若快速回應已完成，直接啟用顯示器，不再進入讀取等待。
+					if self.numCells:
+						break
 					# 與參考 HIMS 相同，USB 切換模式後可能需要較長的準備時間。
 					dev.waitForRead(self.timeout * 10 if self.isBulk else self.timeout)
 					if self.numCells:

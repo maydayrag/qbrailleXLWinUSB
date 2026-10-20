@@ -49,6 +49,7 @@ class Connections(unittest.TestCase):
             "AUTOMATIC_PORT": ("auto", "Automatic"),
             "hwPortUtils": SimpleNamespace(listComPorts=Mock(return_value=[self.bt.deviceInfo | {"port": "COM7"}])),
             "USB_ID": "VID_045E&PID_930B", "_": lambda s: s, "log": Mock(),
+            "HIMS_WINUSB_GUID": "vendor-guid",
         }
         tree = ast.parse((ROOT / "addon/brailleDisplayDrivers/qbrailleXLWinUSB.py").read_text(encoding="utf-8"))
         cls = next(n for n in tree.body if isinstance(n, ast.ClassDef) and n.name == "BrailleDisplayDriver")
@@ -161,6 +162,40 @@ class Connections(unittest.TestCase):
         self.guids.return_value = ["vendor", "zadig"]
         matches = list(self.driver._scanWinUsbDevices())
         self.assertEqual(len(matches), 1)
+
+    def test_startup_usb_precedes_bluetooth_and_registry(self):
+        # A slow Bluetooth enumerator must never run before the first USB match.
+        self.btDevices.side_effect = AssertionError("Bluetooth delayed USB startup")
+        self.guids.side_effect = AssertionError("Registry delayed vendor USB startup")
+        scanner = self.driver._scanWinUsbDevices(usb=True, bluetooth=True)
+        _, match = next(scanner)
+        self.assertEqual(match.port, "usb-path")
+        self.btDevices.assert_not_called()
+        self.guids.assert_not_called()
+        self.responding(self.usbTransport)
+        self.assertEqual(self.driver(match).numCells, 40)
+        scanner.close()
+
+    def test_zadig_fallback_only_after_vendor_has_no_device(self):
+        self.ns["_devicePathsForGuid"].side_effect = lambda guid: [] if guid == "vendor-guid" else ["zadig-path"]
+        scanner = self.driver._scanWinUsbDevices(usb=True, bluetooth=True)
+        _, match = next(scanner)
+        self.assertEqual(match.port, "zadig-path")
+        self.guids.assert_called_once()
+        self.btDevices.assert_not_called()
+        scanner.close()
+
+    def test_no_usb_falls_back_to_bluetooth(self):
+        self.ns["_devicePathsForGuid"].return_value = []
+        self.assertEqual(list(self.driver._scanWinUsbDevices(usb=True, bluetooth=True)), [(self.driver.name, self.bt)])
+
+    def test_immediate_response_skips_read_wait(self):
+        dev = self.usbTransport.return_value
+        def reply(data):
+            self.usbTransport.call_args.args[1].__self__.numCells = 40
+        dev.write.side_effect = reply
+        self.assertEqual(self.driver(self.usb).numCells, 40)
+        dev.waitForRead.assert_not_called()
 
     def test_vendor_guid_available_without_zadig_registry(self):
         tree = ast.parse((ROOT / "addon/brailleDisplayDrivers/qbrailleXLWinUSB.py").read_text(encoding="utf-8"))

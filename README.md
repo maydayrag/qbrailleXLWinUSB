@@ -1,10 +1,10 @@
 # QBraille XL USB and Bluetooth NVDA Add-on
 
-Version **2.0** connects HIMS QBraille XL and compatible Braille EDGE displays
+Version **2.0.1** connects HIMS QBraille XL and compatible Braille EDGE displays
 to NVDA through USB WinUSB or Bluetooth serial (SPP). The add-on identifier
 remains `qbrailleXLWinUSB`, so it updates existing installations.
 
-[Download 2.0](https://github.com/maydayrag/qbrailleXLWinUSB/releases/download/v2.0/qbrailleXLWinUSB-2.0.nvda-addon)
+[Download 2.0.1](https://github.com/maydayrag/qbrailleXLWinUSB/releases/download/v2.0.1/qbrailleXLWinUSB-2.0.1.nvda-addon)
 | [繁體中文使用說明](doc/zh_TW/readme.html)
 
 ## Features
@@ -62,6 +62,19 @@ Hybrid keyboard operation requires the separate keyboard pairing.
 - For unresolved problems, enable NVDA debug logging and provide a complete
   log containing `qbrailleXLWinUSB` and the connection failure.
 
+## Changes in 2.0.1 — Startup delay fix
+
+- Try connected USB displays before enumerating Bluetooth ports.
+- Try the known manufacturer WinUSB interface before inspecting Zadig registry
+  entries. A successful connection stops further enumeration.
+- Skip the read wait if the display has already answered the startup request.
+- Preserve Bluetooth fallback and USB mode-switch readiness handling.
+
+Startup detection begins with NVDA when **Automatic** detection is enabled.
+The display must already be powered on and connected. Actual startup timing
+depends on NVDA and Windows; the fix removes unnecessary enumeration before
+opening a ready USB display.
+
 ## Changes in 2.0 — Bug fixes
 
 - Fix USB discovery when the manufacturer's WinUSB interface is installed;
@@ -79,7 +92,7 @@ cleanup and package integrity. Bluetooth hardware testing is still pending.
 ## Development
 
 Run `python -m unittest discover -s tests -v`, then `powershell -File build.ps1`,
-then `python tests/verify_package.py dist/qbrailleXLWinUSB-2.0.nvda-addon`.
+then `python tests/verify_package.py dist/qbrailleXLWinUSB-2.0.1.nvda-addon`.
 
 References: [manufacturer's QBraille XL manual, sections 4.1–4.3](https://selvasblv.com/wp-content/resources/qbraille-xl/QBraille%20XL%20User%20Manual%20Rev%20181212.pdf)
 and NVDA 2026.2 `brailleDisplayDrivers/hims.py`, `bdDetect.py`, `hwIo/base.py`.

@@ -15,6 +15,29 @@ device test confirms the result.
 - Verification:
 - Follow-up:
 
+## 2026-10-21 — 2.0.1 startup detection delay
+
+- Version reported: 2.0
+- Status: fixed in source; automated regression tests passed; live restart
+  timing with the updated add-on remains to be verified.
+- Evidence: local NVDA 2026.2 log loaded noBraille at 00:42:43.029, opened the
+  QBraille USB interface at 00:42:58.752, and received the 40-cell response at
+  00:42:58.769. The delay preceded opening the display, rather than waiting
+  for its response. The log was not at debug level, so it does not attribute
+  the entire interval to a specific enumeration call.
+- Root cause found in source: the priority scanner exhausted Bluetooth
+  discovery before yielding any USB match. The known vendor GUID also waited
+  for registry enumeration. NVDA's bdDetect scanner processes yielded devices
+  sequentially and stops after a successful connection.
+- Change: yield USB before Bluetooth; lazily try the known vendor interface
+  before registry discovery; skip waitForRead if a cell-count reply already
+  arrived. Keep readiness retries for devices switching modes.
+- Verification: 19 tests, including fail-fast guards proving that neither
+  Bluetooth nor registry discovery runs before a ready vendor USB match,
+  Zadig/Bluetooth fallback and synchronous-response wait avoidance.
+- Follow-up: compare startup timestamps after installing 2.0.1. The current
+  running NVDA was not restarted or replaced during this change.
+
 ## 2026-10-21 — 2.0 bug-fix release
 
 - Status: automated checks passed; physical-device verification pending.
