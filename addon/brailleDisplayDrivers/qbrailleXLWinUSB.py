@@ -42,6 +42,7 @@ except ModuleNotFoundError as error:
 
 
 USB_ID = "VID_045E&PID_930B"
+USB_IDS = {"VID_045E&PID_930A", USB_ID}
 # 來自使用者提供的 2026.3 hims.py：原廠 hims_winusb.inf 所用的介面。
 HIMS_WINUSB_GUID = "{78A1C341-4539-11d3-B88D-00C04FAD5171}"
 # 以下常數是 Windows SetupAPI、Kernel32 與 WinUSB API 使用的旗標/錯誤碼。
@@ -241,7 +242,7 @@ def _findInterfaceGuids() -> list[str]:
 				except OSError:
 					break
 				index += 1
-				if USB_ID not in deviceName.upper():
+				if not any(usbId in deviceName.upper() for usbId in USB_IDS):
 					continue
 				with winreg.OpenKey(usbKey, deviceName) as deviceKey:
 					instanceIndex = 0
@@ -298,7 +299,7 @@ def _devicePathsForGuid(guidString: str):
 				None,
 			):
 				raise _winError("SetupDiGetDeviceInterfaceDetailW failed")
-			if USB_ID.lower() in detail.DevicePath.lower():
+			if any(usbId.lower() in detail.DevicePath.lower() for usbId in USB_IDS):
 				yield detail.DevicePath
 	finally:
 		_setupapi.SetupDiDestroyDeviceInfoList(deviceInfo)
@@ -493,7 +494,7 @@ class BrailleDisplayDriver(hims.BrailleDisplayDriver):
 	@classmethod
 	def registerAutomaticDetection(cls, driverRegistrar: bdDetect.DriverRegistrar):
 		# 先註冊 USB ID，再把 WinUSB 掃描器移到最前，避免內建 HIMS 驅動搶先開啟。
-		driverRegistrar.addUsbDevices(bdDetect.ProtocolType.CUSTOM, {USB_ID})
+		driverRegistrar.addUsbDevices(bdDetect.ProtocolType.CUSTOM, USB_IDS)
 		driverRegistrar.addBluetoothDevices(cls.matchesBluetoothDevice)
 		# The built-in HIMS driver claims the same USB ID and uses legacy
 		# ``devicePath\\0`` / ``devicePath\\1`` endpoint handles. When WinUSB is
@@ -520,6 +521,10 @@ class BrailleDisplayDriver(hims.BrailleDisplayDriver):
 		seenPaths = set()
 		for guidString in cls.interfaceGuids() if usb else ():
 			for path in _devicePathsForGuid(guidString):
+				# 保留此介面真正的識別碼，避免將 930A 裝置誤報成 930B。
+				usbId = next((value for value in USB_IDS if value.lower() in path.lower()), None)
+				if usbId is None:
+					continue
 				# 原廠與登錄檔可能提供同一介面，不要重複開啟同一裝置。
 				if path.casefold() in seenPaths:
 					continue
@@ -528,9 +533,9 @@ class BrailleDisplayDriver(hims.BrailleDisplayDriver):
 					cls.name,
 					bdDetect.DeviceMatch(
 						bdDetect.ProtocolType.CUSTOM,
-						USB_ID,
+						usbId,
 						path,
-						{"usbID": USB_ID, "devicePath": path, "interfaceGuid": guidString},
+						{"usbID": usbId, "devicePath": path, "interfaceGuid": guidString},
 					),
 				)
 		if bluetooth:
@@ -589,7 +594,7 @@ class BrailleDisplayDriver(hims.BrailleDisplayDriver):
 			dev = None
 			try:
 				log.info(f"Opening QBraille XL via {match.type} ({match.port})")
-				if self.isBulk and match.id == USB_ID:
+				if self.isBulk and match.id in USB_IDS:
 					self._dev = dev = _WinUsbTransport(match.port, self._onReceive)
 				elif self.matchesBluetoothDevice(match):
 					# 使用 NVDA 的 HIMS 序列埠參數與背景 I/O，接收流程沿用 HIMS。

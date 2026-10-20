@@ -15,6 +15,18 @@ device test confirms the result.
 - Verification:
 - Follow-up:
 
+## 2026-10-21 — Support both reported USB identifiers in 2.0
+
+- User reports Braille EDGE as 045E:930A and QBraille XL as 045E:930B.
+  NVDA 2026.2 HIMS source associates 930A with Braille Sense/Smart Beetle and
+  930B with Braille EDGE, so IDs are not treated as universal model proof.
+- Accept both IDs for WinUSB discovery, preserve the actual ID in DeviceMatch,
+  and retain the 40-cell response check before selecting BrailleEdge behavior.
+- Added tests for both IDs, exact match metadata, and unrelated USB rejection.
+- Removed the entire troubleshooting section from README and both installed
+  language manuals at the user's request. Version remains 2.0.
+- Validation: 21 isolated tests; hardware verification remains pending.
+
 ## 2026-10-21 — 2.0 startup detection delay
 
 - Version reported: 2.0

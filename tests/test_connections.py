@@ -31,7 +31,7 @@ class Base:
 class Connections(unittest.TestCase):
     def setUp(self):
         self.bt = Match("serial", "Braille EDGE", "COM7", {"bluetoothName": "Braille EDGE"})
-        self.usb = Match("custom", "VID_045E&PID_930B", "usb-path", {})
+        self.usb = Match("custom", "VID_045E&PID_930B", "usb#vid_045e&pid_930b#test", {})
         self.btDevices = Mock(return_value=iter([self.bt]))
         self.serial = Mock()
         self.usbTransport = Mock()
@@ -44,12 +44,13 @@ class Connections(unittest.TestCase):
                 getPossibleBluetoothDevicesForDriver=self.btDevices),
             "Serial": self.serial, "_WinUsbTransport": self.usbTransport,
             "_findInterfaceGuids": self.guids,
-            "_devicePathsForGuid": Mock(return_value=["usb-path"]),
+            "_devicePathsForGuid": Mock(return_value=["usb#vid_045e&pid_930b#test"]),
             "BaseBrailleDisplayDriver": Base,
             "AUTOMATIC_PORT": ("auto", "Automatic"),
             "hwPortUtils": SimpleNamespace(listComPorts=Mock(return_value=[self.bt.deviceInfo | {"port": "COM7"}])),
             "USB_ID": "VID_045E&PID_930B", "_": lambda s: s, "log": Mock(),
             "HIMS_WINUSB_GUID": "vendor-guid",
+            "USB_IDS": {"VID_045E&PID_930A", "VID_045E&PID_930B"},
         }
         tree = ast.parse((ROOT / "addon/brailleDisplayDrivers/qbrailleXLWinUSB.py").read_text(encoding="utf-8"))
         cls = next(n for n in tree.body if isinstance(n, ast.ClassDef) and n.name == "BrailleDisplayDriver")
@@ -77,7 +78,7 @@ class Connections(unittest.TestCase):
         registrar = Mock()
         self.driver.registerAutomaticDetection(registrar)
         registrar.addBluetoothDevices.assert_called_once_with(self.driver.matchesBluetoothDevice)
-        registrar.addUsbDevices.assert_called_once_with("custom", {self.usb.id})
+        registrar.addUsbDevices.assert_called_once_with("custom", self.ns["USB_IDS"])
         self.assertTrue(registrar.addDeviceScanner.call_args.kwargs["moveToStart"])
 
     def test_scanner_filters_and_bluetooth_without_usb(self):
@@ -102,7 +103,7 @@ class Connections(unittest.TestCase):
         driver = self.driver(self.usb)
         self.serial.assert_not_called()
         self.assertTrue(driver.isBulk)
-        self.assertEqual(self.usbTransport.call_args.args[0], "usb-path")
+        self.assertEqual(self.usbTransport.call_args.args[0], "usb#vid_045e&pid_930b#test")
 
     def test_no_response_closes_and_allows_future_retry(self):
         dev = self.serial.return_value
@@ -134,7 +135,7 @@ class Connections(unittest.TestCase):
         self.assertEqual(list(self.driver.connectionCandidates("bluetooth")), [self.bt])
         self.guids.assert_not_called()
         self.btDevices.reset_mock()
-        self.assertEqual([m.port for m in self.driver.connectionCandidates("usb")], ["usb-path"])
+        self.assertEqual([m.port for m in self.driver.connectionCandidates("usb")], ["usb#vid_045e&pid_930b#test"])
         self.btDevices.assert_not_called()
 
     def test_manual_bluetooth_port_and_unknown_port(self):
@@ -169,7 +170,7 @@ class Connections(unittest.TestCase):
         self.guids.side_effect = AssertionError("Registry delayed vendor USB startup")
         scanner = self.driver._scanWinUsbDevices(usb=True, bluetooth=True)
         _, match = next(scanner)
-        self.assertEqual(match.port, "usb-path")
+        self.assertEqual(match.port, "usb#vid_045e&pid_930b#test")
         self.btDevices.assert_not_called()
         self.guids.assert_not_called()
         self.responding(self.usbTransport)
@@ -177,10 +178,10 @@ class Connections(unittest.TestCase):
         scanner.close()
 
     def test_zadig_fallback_only_after_vendor_has_no_device(self):
-        self.ns["_devicePathsForGuid"].side_effect = lambda guid: [] if guid == "vendor-guid" else ["zadig-path"]
+        self.ns["_devicePathsForGuid"].side_effect = lambda guid: [] if guid == "vendor-guid" else ["usb#vid_045e&pid_930b#zadig"]
         scanner = self.driver._scanWinUsbDevices(usb=True, bluetooth=True)
         _, match = next(scanner)
-        self.assertEqual(match.port, "zadig-path")
+        self.assertEqual(match.port, "usb#vid_045e&pid_930b#zadig")
         self.guids.assert_called_once()
         self.btDevices.assert_not_called()
         scanner.close()
@@ -188,6 +189,20 @@ class Connections(unittest.TestCase):
     def test_no_usb_falls_back_to_bluetooth(self):
         self.ns["_devicePathsForGuid"].return_value = []
         self.assertEqual(list(self.driver._scanWinUsbDevices(usb=True, bluetooth=True)), [(self.driver.name, self.bt)])
+
+    def test_both_usb_ids_are_preserved_and_opened(self):
+        for usbId in sorted(self.ns["USB_IDS"]):
+            path = f"usb#{usbId.lower()}#test"
+            self.ns["_devicePathsForGuid"].return_value = [path]
+            _, match = next(self.driver._scanWinUsbDevices())
+            self.assertEqual(match.id, usbId)
+            self.assertEqual(match.deviceInfo["usbID"], usbId)
+            self.responding(self.usbTransport)
+            self.assertEqual(self.driver(match).numCells, 40)
+
+    def test_unrelated_usb_path_is_ignored(self):
+        self.ns["_devicePathsForGuid"].return_value = ["usb#vid_1234&pid_5678#test"]
+        self.assertEqual(list(self.driver._scanWinUsbDevices()), [])
 
     def test_immediate_response_skips_read_wait(self):
         dev = self.usbTransport.return_value

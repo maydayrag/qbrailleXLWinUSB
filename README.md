@@ -9,7 +9,7 @@ remains `qbrailleXLWinUSB`, so it updates existing installations.
 
 ## Features
 
-- Automatic USB detection for `VID_045E&PID_930B` with Zadig WinUSB.
+- Automatic USB detection for `VID_045E&PID_930A` and `VID_045E&PID_930B` with WinUSB.
 - Automatic Bluetooth SPP detection for `Braille EDGE` / `BrailleEDGE` devices.
 - Braille output, routing keys, braille keyboard input and display function keys
   through NVDA's HIMS protocol implementation.
@@ -45,22 +45,6 @@ Hybrid keyboard operation requires the separate keyboard pairing.
 
 1. Use Zadig to install Microsoft **WinUSB** for the QBraille XL USB device.
 2. Switch the display to USB mode and connect it to the computer.
-
-## Troubleshooting
-
-- Confirm NVDA is using **Automatic** detection and this driver is allowed.
-- For Bluetooth, verify the **Braille EDGE** SPP pairing and COM port,
-  select the correct computer connection on the display, and close other
-  screen readers that may hold the same port. An offline paired display is
-  not treated as connected: it must answer the cell-count request.
-- NVDA scans on device changes and retries known Bluetooth devices when
-  applications change. If it has not connected yet, switch applications or
-  reselect Automatic. Detection is asynchronous; another active display
-  continues to use NVDA's normal display selection behavior.
-- For USB, check WinUSB and hardware ID `VID_045E&PID_930B` in Device Manager.
-- Fully restart NVDA after updating to release old driver handles.
-- For unresolved problems, enable NVDA debug logging and provide a complete
-  log containing `qbrailleXLWinUSB` and the connection failure.
 
 ## Changes in 2.0 — Startup delay fix
 
