@@ -46,39 +46,9 @@ Hybrid keyboard operation requires the separate keyboard pairing.
 1. Use Zadig to install Microsoft **WinUSB** for the QBraille XL USB device.
 2. Switch the display to USB mode and connect it to the computer.
 
-## Changes in 2.0 — Startup delay fix
-
-- Try connected USB displays before enumerating Bluetooth ports.
-- Try the known manufacturer WinUSB interface before inspecting Zadig registry
-  entries. A successful connection stops further enumeration.
-- Skip the read wait if the display has already answered the startup request.
-- Preserve Bluetooth fallback and USB mode-switch readiness handling.
-
-Startup detection begins with NVDA when **Automatic** detection is enabled.
-The display must already be powered on and connected. Actual startup timing
-depends on NVDA and Windows; the fix removes unnecessary enumeration before
-opening a ready USB display.
-
-## Changes in 2.0 — Bug fixes
-
-- Fix USB discovery when the manufacturer's WinUSB interface is installed;
-  retain Zadig support and avoid duplicate connection attempts.
-- Allow more time for USB initialization after switching connection modes.
-- Fix base-driver initialization and automatic-port imports across NVDA API layouts.
-- Provide matching Bluetooth COM ports for manual connection troubleshooting.
-- Reject unexpected cell counts before selecting the 40-cell model.
-
-The highest declared tested NVDA version remains **2026.2**.
-
-Automated tests cover detection, transport selection, response timeouts,
-cleanup and package integrity. Bluetooth hardware testing is still pending.
-
 ## Development
 
 Run `python -m unittest discover -s tests -v`, then `powershell -File build.ps1`,
 then `python tests/verify_package.py dist/qbrailleXLWinUSB-2.0.nvda-addon`.
-
-References: [manufacturer's QBraille XL manual, sections 4.1–4.3](https://selvasblv.com/wp-content/resources/qbraille-xl/QBraille%20XL%20User%20Manual%20Rev%20181212.pdf)
-and NVDA 2026.2 `brailleDisplayDrivers/hims.py`, `bdDetect.py`, `hwIo/base.py`.
 
 Licensed under GPL; see [COPYING](COPYING).
