@@ -1,10 +1,10 @@
 # QBraille XL USB and Bluetooth NVDA Add-on
 
-Version **1.5** connects HIMS QBraille XL and compatible Braille EDGE displays
+Version **2.0** connects HIMS QBraille XL and compatible Braille EDGE displays
 to NVDA through USB WinUSB or Bluetooth serial (SPP). The add-on identifier
 remains `qbrailleXLWinUSB`, so it updates existing installations.
 
-[Download 1.5](https://github.com/maydayrag/qbrailleXLWinUSB/releases/download/v1.5/qbrailleXLWinUSB-1.5.nvda-addon)
+[Download 2.0](https://github.com/maydayrag/qbrailleXLWinUSB/releases/download/v2.0/qbrailleXLWinUSB-2.0.nvda-addon)
 | [繁體中文使用說明](doc/zh_TW/readme.html)
 
 ## Features
@@ -62,13 +62,16 @@ Hybrid keyboard operation requires the separate keyboard pairing.
 - For unresolved problems, enable NVDA debug logging and provide a complete
   log containing `qbrailleXLWinUSB` and the connection failure.
 
-## Changes in 1.5
+## Changes in 2.0 — Bug fixes
 
-- Added Bluetooth SPP automatic detection and serial transport.
-- Made the driver available before USB insertion, allowing Bluetooth-only use.
-- Honor the exact device supplied by NVDA detection; close unsuccessful
-  connections before retrying.
-- Updated English and Traditional Chinese installation and troubleshooting.
+- Fix USB discovery when the manufacturer's WinUSB interface is installed;
+  retain Zadig support and avoid duplicate connection attempts.
+- Allow more time for USB initialization after switching connection modes.
+- Fix base-driver initialization and automatic-port imports across NVDA API layouts.
+- Provide matching Bluetooth COM ports for manual connection troubleshooting.
+- Reject unexpected cell counts before selecting the 40-cell model.
+
+The highest declared tested NVDA version remains **2026.2**.
 
 Automated tests cover detection, transport selection, response timeouts,
 cleanup and package integrity. Bluetooth hardware testing is still pending.
@@ -76,7 +79,7 @@ cleanup and package integrity. Bluetooth hardware testing is still pending.
 ## Development
 
 Run `python -m unittest discover -s tests -v`, then `powershell -File build.ps1`,
-then `python tests/verify_package.py dist/qbrailleXLWinUSB-1.5.nvda-addon`.
+then `python tests/verify_package.py dist/qbrailleXLWinUSB-2.0.nvda-addon`.
 
 References: [manufacturer's QBraille XL manual, sections 4.1–4.3](https://selvasblv.com/wp-content/resources/qbraille-xl/QBraille%20XL%20User%20Manual%20Rev%20181212.pdf)
 and NVDA 2026.2 `brailleDisplayDrivers/hims.py`, `bdDetect.py`, `hwIo/base.py`.

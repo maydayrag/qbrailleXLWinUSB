@@ -22,6 +22,7 @@ import winreg
 import addonHandler
 import bdDetect
 import braille
+import hwPortUtils
 from hwIo.base import Serial
 from brailleDisplayDrivers import hims
 from logHandler import log
@@ -29,8 +30,20 @@ from logHandler import log
 
 addonHandler.initTranslation()
 
+# 2026.3 的點字基底類別移至新模組；舊版繼續使用原有的公開 API。
+try:
+	from braille.display.driver import BrailleDisplayDriver as BaseBrailleDisplayDriver
+	from braille.constants import AUTOMATIC_PORT
+except ModuleNotFoundError as error:
+	if error.name not in ("braille.display", "braille.display.driver"):
+		raise
+	from braille import BrailleDisplayDriver as BaseBrailleDisplayDriver
+	from braille import AUTOMATIC_PORT
+
 
 USB_ID = "VID_045E&PID_930B"
+# 來自使用者提供的 2026.3 hims.py：原廠 hims_winusb.inf 所用的介面。
+HIMS_WINUSB_GUID = "{78A1C341-4539-11d3-B88D-00C04FAD5171}"
 # 以下常數是 Windows SetupAPI、Kernel32 與 WinUSB API 使用的旗標/錯誤碼。
 _USB_REGISTRY_PATH = r"SYSTEM\CurrentControlSet\Enum\USB"
 _INVALID_HANDLE_VALUE = ctypes.c_void_p(-1).value
@@ -218,7 +231,7 @@ def _winError(message: str) -> OSError:
 def _findInterfaceGuids() -> list[str]:
 	"""讀取 Zadig 為指定 QBraille USB ID 寫入的 WinUSB 介面 GUID。"""
 	# Zadig 會把 WinUSB 介面 GUID 寫入登錄檔；先找出 GUID 才能查詢裝置路徑。
-	guids: list[str] = []
+	guids: list[str] = [HIMS_WINUSB_GUID]
 	try:
 		with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, _USB_REGISTRY_PATH) as usbKey:
 			index = 0
@@ -498,8 +511,13 @@ class BrailleDisplayDriver(hims.BrailleDisplayDriver):
 		if bluetooth:
 			for match in bdDetect.getPossibleBluetoothDevicesForDriver(cls.name):
 				yield cls.name, match
+		seenPaths = set()
 		for guidString in _findInterfaceGuids() if usb else ():
 			for path in _devicePathsForGuid(guidString):
+				# 原廠與登錄檔可能提供同一介面，不要重複開啟同一裝置。
+				if path.casefold() in seenPaths:
+					continue
+				seenPaths.add(path.casefold())
 				yield (
 					cls.name,
 					bdDetect.DeviceMatch(
@@ -512,8 +530,22 @@ class BrailleDisplayDriver(hims.BrailleDisplayDriver):
 
 	@classmethod
 	def getManualPorts(cls):
-		# 固定提供 automatic 連接埠，讓使用者仍可在設定中手動選取驅動程式。
-		return iter((braille.AUTOMATIC_PORT,))
+		# 自動偵測仍為預設；需要排錯時也能明確指定點字藍牙埠。
+		yield AUTOMATIC_PORT
+		for match in cls.bluetoothPorts():
+			yield match.port, f"{match.id} ({match.port})"
+
+	@classmethod
+	def bluetoothPorts(cls):
+		# 與 HIMS 的手動序列埠方式相同，但只列出本裝置的 SPP 埠。
+		for info in hwPortUtils.listComPorts():
+			if "bluetoothName" not in info:
+				continue
+			match = bdDetect.DeviceMatch(
+				bdDetect.ProtocolType.SERIAL, info["bluetoothName"], info["port"], info,
+			)
+			if cls.matchesBluetoothDevice(match):
+				yield match
 
 	@classmethod
 	def connectionCandidates(cls, port):
@@ -522,7 +554,10 @@ class BrailleDisplayDriver(hims.BrailleDisplayDriver):
 			yield port
 			return
 		if port not in ("auto", "usb", "bluetooth"):
-			raise ValueError("Select an automatic, USB or Bluetooth connection")
+			for match in cls.bluetoothPorts():
+				if match.port.casefold() == port.casefold():
+					yield match
+			return
 		if port in ("auto", "usb"):
 			for _, match in cls._scanWinUsbDevices(usb=True):
 				yield match
@@ -530,9 +565,8 @@ class BrailleDisplayDriver(hims.BrailleDisplayDriver):
 			yield from bdDetect.getPossibleBluetoothDevicesForDriver(cls.name)
 
 	def __init__(self, port="auto"):
-		# 不呼叫 HIMS 建構子：它只會嘗試傳統的 endpoint 路徑（\\0/\\1）。
-		# Do not call hims.BrailleDisplayDriver.__init__; it uses legacy bulk endpoint paths.
-		braille.BrailleDisplayDriver.__init__(self)
+		# 自行選擇 WinUSB 與藍牙傳輸；按鍵與點字協定沿用已安裝 NVDA 的 HIMS。
+		BaseBrailleDisplayDriver.__init__(self)
 		self.numCells = 0
 		self._model = None
 		self._serialData = b""
@@ -561,11 +595,14 @@ class BrailleDisplayDriver(hims.BrailleDisplayDriver):
 					continue
 				for _attempt in range(3):
 					self._sendCellCountRequest()
-					dev.waitForRead(self.timeout * 4 if self.isBulk else self.timeout)
+					# 與參考 HIMS 相同，USB 切換模式後可能需要較長的準備時間。
+					dev.waitForRead(self.timeout * 10 if self.isBulk else self.timeout)
 					if self.numCells:
 						break
 				if not self.numCells:
 					raise RuntimeError("QBraille XL did not answer the cell-count request")
+				if self.numCells != 40:
+					raise RuntimeError(f"Expected a 40-cell QBraille XL/Braille EDGE, got {self.numCells}")
 				# 原廠手冊確認 USB 與藍牙 SPP 均使用 Braille EDGE 40 協定。
 				self._model = hims.BrailleEdge()
 				log.info(f"Found QBraille XL via {match.type} ({match.port}) with {self.numCells} cells")

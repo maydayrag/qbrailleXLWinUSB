@@ -15,6 +15,24 @@ device test confirms the result.
 - Verification:
 - Follow-up:
 
+## 2026-10-21 — 2.0 bug-fix release
+
+- Status: automated checks passed; physical-device verification pending.
+- Evidence: compared the user-supplied root-level `hims.py` with the required
+  NVDA 2026.2 source, Developer Guide and Add-on Development Guide. The
+  reference supplies the manufacturer's WinUSB GUID and longer bulk startup
+  wait. Public base-driver and constant import locations were also checked
+  against NVDA source.
+- Fixes: scan the vendor WinUSB GUID as well as Zadig registry GUIDs; remove
+  duplicate paths; extend USB startup waits; select the available base-driver
+  API and import automatic-port constants directly; expose matching Bluetooth
+  COM ports for troubleshooting; reject non-40-cell responses.
+- Compatibility: `lastTestedNVDAVersion` remains `2026.2`; this release does not
+  claim additional NVDA runtime or device tests.
+- Validation: 15 isolated tests and final archive integrity/source checks.
+  Tests simulate hardware and both import layouts; they do not prove device
+  operation in a live NVDA process.
+
 ## 2026-10-03 — Bluetooth SPP support in 1.5
 
 - Version: 1.5

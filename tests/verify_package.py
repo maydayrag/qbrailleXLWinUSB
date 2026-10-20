@@ -14,7 +14,8 @@ def verify(path):
         assert archive.testzip() is None, "ZIP CRC failure"
         manifest = archive.read("manifest.ini")
         assert manifest == (ROOT / "manifest.ini").read_bytes()
-        assert re.search(rb'^version\s*=\s*"1.5"\s*$', manifest, re.M)
+        version = re.search(rb'^version\s*=\s*"([^"]+)"\s*$', manifest, re.M).group(1).decode()
+        assert path.name == f"qbrailleXLWinUSB-{version}.nvda-addon"
         source = ROOT / "addon/brailleDisplayDrivers/qbrailleXLWinUSB.py"
         assert archive.read("brailleDisplayDrivers/qbrailleXLWinUSB.py") == source.read_bytes()
         compile(archive.read("brailleDisplayDrivers/qbrailleXLWinUSB.py"), source.name, "exec")
@@ -23,7 +24,7 @@ def verify(path):
                 if file.is_file():
                     assert archive.read(file.relative_to(ROOT).as_posix()) == file.read_bytes()
         assert not any("__pycache__" in n or n.startswith("addon/") for n in archive.namelist())
-    print(f"Verified ZIP, version 1.5, driver source and documentation: {path}")
+    print(f"Verified ZIP, version {version}, driver source and documentation: {path}")
 
 
 if __name__ == "__main__":
