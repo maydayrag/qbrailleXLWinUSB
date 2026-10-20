@@ -5,18 +5,15 @@
 **Compatible with NVDA 2026.1–2026.2. NVDA 2026.3 includes the driver; this add-on is not required.**
 
 Version **2.0** connects HIMS QBraille XL and compatible Braille EDGE displays
-to NVDA through USB WinUSB or Bluetooth serial (SPP). The add-on identifier
-remains `qbrailleXLWinUSB`, so it updates existing installations.
+to NVDA through USB WinUSB or Bluetooth serial (SPP).
 
 [Download 2.0](https://github.com/maydayrag/qbrailleXLWinUSB/releases/download/v2.0/qbrailleXLWinUSB-2.0.nvda-addon)
 | [繁體中文使用說明](doc/zh_TW/readme.html)
 
 ## Features
 
-- Automatic USB detection for `VID_045E&PID_930A` and `VID_045E&PID_930B` with WinUSB.
+- Automatically detects QBraille XL / Braille EDGE.
 - Automatic Bluetooth SPP detection for `Braille EDGE` / `BrailleEDGE` devices.
-- Braille output, routing keys, braille keyboard input and display function keys
-  through NVDA's HIMS protocol implementation.
 - Compatible with NVDA 2026.1–2026.2.
 - English and Traditional Chinese documentation.
 
