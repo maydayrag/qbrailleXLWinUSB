@@ -1,4 +1,8 @@
-# QBraille XL USB and Bluetooth NVDA Add-on
+# QBraille XL / Braille EDGE 點字顯示器驅動程式附加元件
+
+**相容 NVDA 2026.1～2026.2。NVDA 2026.3 已內建點字顯示器驅動程式，不需安裝本附加元件。**
+
+**Compatible with NVDA 2026.1–2026.2. NVDA 2026.3 includes the driver; this add-on is not required.**
 
 Version **2.0** connects HIMS QBraille XL and compatible Braille EDGE displays
 to NVDA through USB WinUSB or Bluetooth serial (SPP). The add-on identifier
@@ -13,7 +17,7 @@ remains `qbrailleXLWinUSB`, so it updates existing installations.
 - Automatic Bluetooth SPP detection for `Braille EDGE` / `BrailleEDGE` devices.
 - Braille output, routing keys, braille keyboard input and display function keys
   through NVDA's HIMS protocol implementation.
-- NVDA 2026.1 or later; implementation checked against NVDA 2026.2 source.
+- Compatible with NVDA 2026.1–2026.2.
 - English and Traditional Chinese documentation.
 
 ## Install
@@ -21,10 +25,10 @@ remains `qbrailleXLWinUSB`, so it updates existing installations.
 1. Install the add-on and fully restart NVDA.
 2. In NVDA Settings → Braille → Change display, select **Automatic**.
    If automatic detection is restricted to specific displays, include
-   **QBraille XL (WinUSB / Bluetooth)**.
+   **QBraille XL / Braille EDGE 點字顯示器驅動程式附加元件**.
 3. Set up either connection below. NVDA's background detection opens the
    display once it is available and responds. No manual COM port selection
-   is required. You may also select **QBraille XL (WinUSB / Bluetooth)** with
+   is required. You may also select **QBraille XL / Braille EDGE 點字顯示器驅動程式附加元件** with
    its **Automatic** port to try currently available connections.
 
 ### Bluetooth
